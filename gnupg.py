@@ -909,7 +909,7 @@ class GPG(object):
     #
     def encrypt_file(self, file, recipients, sign=None,
             always_trust=False, passphrase=None,
-            armor=True, output=None, symmetric=False):
+            armor=True, output=None, symmetric=False, hidekeyid=False):
         "Encrypt the message read from the file-like object 'file'"
         args = ['--encrypt']
         if symmetric:
@@ -930,6 +930,8 @@ class GPG(object):
             args.append('--sign --default-key "%s"' % sign)
         if always_trust:
             args.append("--always-trust")
+        if hidekeyid:
+            args.append("--throw-keyids")
         result = self.result_map['crypt'](self)
         self._handle_io(args, file, result, passphrase=passphrase, binary=True)
         logger.debug('encrypt result: %r', result.data)
@@ -994,7 +996,7 @@ class GPG(object):
         return result
 
     def decrypt_file(self, file, always_trust=False, passphrase=None,
-                     output=None):
+                     output=None, secretkey=None):
         args = ["--decrypt"]
         if output:  # write the output to a file with the specified name
             if os.path.exists(output):
@@ -1002,6 +1004,8 @@ class GPG(object):
             args.append('--output "%s"' % output)
         if always_trust:
             args.append("--always-trust")
+        if secretkey:
+            args.append('--try-secret-key "%s"' % secretkey)
         result = self.result_map['crypt'](self)
         self._handle_io(args, file, result, passphrase, binary=True)
         logger.debug('decrypt result: %r', result.data)
