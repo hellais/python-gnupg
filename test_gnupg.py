@@ -132,13 +132,13 @@ class GPGTestCase(unittest.TestCase):
         params['Passphrase'] = passphrase
         cmd = self.gpg.gen_key_input(**params)
         return self.gpg.gen_key(cmd)
-    
+
     def do_key_generation(self):
         "Test that key generation succeeds"
         result = self.generate_key("Barbara", "Brown", "beta.com")
         self.assertNotEqual(None, result, "Non-null result")
         return result
-    
+
     def test_list_keys_after_generation(self):
         "Test that after key generation, the generated key is available"
         self.test_list_keys_initial()
@@ -373,7 +373,7 @@ def suite(args=None):
             elif arg == "doc":
                 want_doctests = True
             else:
-                print("Ignoring unknown test group %r" % arg)        
+                print("Ignoring unknown test group %r" % arg)
         result = unittest.TestSuite(list(map(GPGTestCase, tests)))
     if want_doctests:
         result.addTest(doctest.DocTestSuite(gnupg))

@@ -445,6 +445,17 @@ class Sign(object):
         else:
             raise ValueError("Unknown status message: %r" % key)
 
+class Edit(object):
+    "Handle status messages for --edit-key"
+    def __init__(self, gpg):
+        self.gpg = gpg
+        self.type = None
+        self.fingerprint = None
+
+    def handle_status(self, key, value):
+        if key in ("NEED_PASSPHRASE_SYM"):
+            print "Gotcha!"
+            _write_passphrase(self.gpg.process.stdin, "diocane", self.gpg.encoding)
 
 class GPG(object):
 
@@ -458,6 +469,7 @@ class GPG(object):
         'list': ListKeys,
         'sign': Sign,
         'verify': Verify,
+        'edit': Edit,
     }
 
     "Encapsulate access to the gpg executable"
@@ -588,6 +600,7 @@ class GPG(object):
         # Handle a basic data call - pass data to GPG, handle the output
         # including status information. Garbage In, Garbage Out :)
         p = self._open_subprocess(args, passphrase is not None)
+        self.process = p
         if not binary:
             stdin = codecs.getwriter(self.encoding)(p.stdin)
         else:
@@ -596,6 +609,25 @@ class GPG(object):
             _write_passphrase(stdin, passphrase, self.encoding)
         writer = _threaded_copy_data(file, stdin)
         self._collect_output(p, result, writer, stdin)
+        return result
+
+    #
+    # KEY EDITING METHODS
+    #
+    def edit_key(self, keyid, action, passphrase=None,
+                    newpassphrase=None):
+        """
+        edit a key
+        """
+        args = []
+        logger.debug("edit_key: %s %s" % (keyid, action))
+        args.append('--edit-key %s %s' % (keyid, action))
+
+        data = _make_binary_stream("", self.encoding)
+        result = self.result_map['edit'](self)
+        ret = self._handle_io(args, data, result, binary=False,
+                        passphrase=passphrase)
+        print ret
         return result
 
     #
@@ -743,6 +775,7 @@ class GPG(object):
 
     def recv_keys(self, keyserver, *keyids):
         """Import a key from a keyserver
+
 
         >>> import shutil
         >>> shutil.rmtree("keys")
@@ -938,7 +971,8 @@ class GPG(object):
         return result
 
     def encrypt(self, data, recipients, **kwargs):
-        """Encrypt the message contained in the string 'data'
+        """
+        Encrypt the message contained in the string 'data'
 
         >>> import shutil
         >>> if os.path.exists("keys"):
